@@ -37,17 +37,35 @@ As convenções de nome de recursos (cluster, task definition, service, security
 groups) já estão documentadas em `.kiro/rules/infraestrutura.md`, cenário
 "Com ALB" — usar essas convenções ao criar os recursos das fases abaixo.
 
-## Fase 1 — Alta disponibilidade
+## Fase 1 — Alta disponibilidade ✅ CONCLUÍDA (2026-09-16)
 
-- Criar cluster ECS (`cluster-bia-alb`), tipo EC2, com pelo menos 2 instâncias
-  — uma na zona A (`us-east-1a`) e outra na zona B (`us-east-1b`)
-- Task Definition (`task-def-bia-alb`) apontando para a imagem já publicada no ECR
-- Application Load Balancer (`bia-alb`) nas subnets das duas zonas
-- Target Group (`tg-bia-alb`, tipo instance)
-- ECS Service (`service-bia-alb`) com rolling update (min healthy 50%, max 100%)
+- Cluster ECS `cluster-bia-alb`, tipo EC2, 2 instâncias t3.micro — uma em
+  `us-east-1a`, outra em `us-east-1b`
+- Task Definition `task-def-bia-alb` (revisão 4: CPU 1024, Memory 400,
+  container `bia` na porta 8080, host port dinâmico)
+- Application Load Balancer `bia-alb`, internet-facing, subnets das duas zonas
+- Target Group `tg-bia-alb`, tipo instance, health check em `/`
+- ECS Service `service-bia-alb`: desired=2, running=2, rolling update
+  (min healthy 50%, max 100%), Availability Zone rebalancing desativado
+- Security Groups ajustados: `bia-alb` (80/443 públicos), `bia-ec2` (all TCP
+  só a partir do `bia-alb`), `bia-db` atualizado para aceitar o `bia-ec2`
 
-Sem essa fase, as próximas não resolvem o problema real de disponibilidade —
-é a base de tudo.
+**Pendência cosmética (não bloqueia):** a descrição da regra do SG `bia-alb`
+ficou "acesso publico HTTP-HTTPS" em vez do padrão exato da rule
+("acesso público HTTP/HTTPS") — decidido deixar como está, sem impacto
+funcional.
+
+**Notas de implementação para lembrar depois:**
+- ECS não permite renomear Target Group nem Service depois de criados — para
+  corrigir nome é preciso escalar o service a 0, deletar, e recriar.
+- No console, o campo "Service name" ao criar um service vem pré-preenchido
+  com o nome da task definition — apagar e digitar o nome correto manualmente,
+  senão o service fica com nome errado (aconteceu duas vezes nessa fase).
+- Se o toggle "Availability Zone rebalancing" estiver ligado, o console exige
+  Maximum percent > 100 — desativar o toggle antes de definir 50/100.
+
+Sem essa fase, as próximas não resolveriam o problema real de disponibilidade
+— era a base de tudo.
 
 ## Fase 2 — Pipeline CI/CD
 
