@@ -64,6 +64,30 @@ funcional.
 - Se o toggle "Availability Zone rebalancing" estiver ligado, o console exige
   Maximum percent > 100 — desativar o toggle antes de definir 50/100.
 
+**Bug pós-deploy encontrado e corrigido: app não persistia dados.** Causas
+(duas, encontradas em sequência):
+1. `DB_PWD` na Task Definition estava com a senha antiga/errada — corrigido
+   pra bater com o secret `rds/bia/credentials` no Secrets Manager.
+2. Bug real: no `Dockerfile` da `bia-dev`, o build do frontend fixava
+   `VITE_API_URL=http://bia-alb-.../` **com barra no final** — isso gerava
+   `${apiUrl}/api/tarefas` como URL com barra dupla (`...///api/tarefas`),
+   que o Express não roteava para POST (dava 404), embora GET "funcionasse"
+   por acidente. Corrigido removendo a barra final do `VITE_API_URL` no
+   Dockerfile e rebuildando com `deploy-com-ia.sh`.
+
+**Ponto frágil pra observar depois:** o DNS do ALB está hardcoded no
+Dockerfile como `VITE_API_URL`. Se o ALB for recriado, o DNS muda e isso
+quebra de novo — considerar usar caminho relativo no frontend em vez de URL
+absoluta, já que API e front ficam atrás do mesmo ALB.
+
+**Importante sobre onde o código realmente está:** o remoto git da `bia-dev`
+aponta para `https://github.com/henrylle/bia` (o repositório original do
+curso), não para `lucalipe/bia`. O código que gera as imagens Docker é o que
+está fisicamente naquela pasta na EC2, que pode divergir do que está no
+GitHub (aconteceu: o ajuste do `VITE_API_URL` para o ALB foi feito só
+localmente na `bia-dev`, nunca commitado/pushado). Vale considerar trocar o
+remoto da `bia-dev` para `lucalipe/bia` e commitar esses ajustes lá.
+
 Sem essa fase, as próximas não resolveriam o problema real de disponibilidade
 — era a base de tudo.
 
