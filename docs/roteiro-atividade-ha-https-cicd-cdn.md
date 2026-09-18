@@ -91,18 +91,41 @@ remoto da `bia-dev` para `lucalipe/bia` e commitar esses ajustes lá.
 Sem essa fase, as próximas não resolveriam o problema real de disponibilidade
 — era a base de tudo.
 
-## Fase 2 — Pipeline CI/CD
+## Fase 2 — Pipeline CI/CD ✅ CONCLUÍDA (2026-09-18)
 
-Confirmado: não existe nada ainda, será criado do zero.
+- **CodeBuild**: projeto `bia-build-prd`, usa o `buildspec.yml` do repo
+  (build da imagem, push pro ECR, gera `imagedefinitions.json`). Role com
+  `AmazonEC2ContainerRegistryPowerUser` + policy base de logs.
+- **CodePipeline**: `bia-prd`, 3 estágios:
+  - Source: GitHub (`lucalipe/bia`, branch `main`) via CodeConnections,
+    trigger automático em push
+  - Build: CodeBuild `bia-build-prd`
+  - Deploy: ação ECS nativa do CodePipeline, `cluster-bia-alb` / `service-bia-alb`
+- Testado de ponta a ponta ao vivo: push → build → deploy automático → app
+  atualizada em produção, sem rodar nada manual.
 
-- CodeBuild project usando o `buildspec.yml` já existente no repo (faz build
-  da imagem, push pro ECR, gera `imagedefinitions.json`)
-- CodePipeline com 3 estágios: Source (GitHub) → Build (CodeBuild) → Deploy (ECS)
-- Ajustar a IAM role do CodeBuild/CodePipeline: permissões de push/pull no ECR
-  e de deploy no ECS Service criado na Fase 1
+**Bug encontrado durante a validação: regressão da barra dupla.** O commit
+`c9412b3 "Alteracoes para CICD"` (feito direto na `bia-dev`) reintroduziu o
+bug do `VITE_API_URL` com barra final no `Dockerfile` (o mesmo problema da
+Fase 1). Causa: a correção anterior só existia localmente na `bia-dev` e
+nunca tinha sido commitada — foi sobrescrita sem querer. Corrigido de novo e
+dessa vez commitado e enviado, com a pipeline fazendo o deploy automático da
+correção (validação real do CI/CD).
 
-Fazer essa fase logo após a Fase 1 permite validar as fases seguintes via
-deploy automatizado, em vez de manual.
+**Achado de segurança, não commitado (decisão consciente):** o `compose.yml`
+modificado localmente na `bia-dev` apontava `DB_HOST`/`DB_PWD` pro RDS de
+produção, com a senha em texto plano (e ainda por cima a senha antiga/errada).
+Decidido não commitar — `compose.yml` é pro ambiente local isolado, e expor
+credencial de produção no histórico do git é um risco real. Ficou só como
+mudança local não commitada.
+
+**Lição de processo:** o remoto da `bia-dev` (`henrylle/bia` originalmente)
+foi corrigido pra `lucalipe/bia` durante essa fase, resolvendo a divergência
+de histórico mencionada na Fase 1. Ainda assim, vale o hábito de sempre
+`git status` + revisar `git diff` antes de commitar mudanças feitas direto
+na EC2, já que apareceram junto outras alterações não relacionadas
+(`.kiro/agents/bia.json` com uma região AWS errada, `compose.yml` arriscado,
+scripts novos ainda não revisados).
 
 ## Fase 3 — Domínio com HTTPS
 
