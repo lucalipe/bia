@@ -59,7 +59,7 @@ const AddTask = ({ onAdd }) => {
       </div>
       
       <button type="submit" className="btn btn-block success">
-        Adicionar Task com CI-CD 
+        Adicionar Task dominio com HTTPS 
       </button>
       
       <Modal
