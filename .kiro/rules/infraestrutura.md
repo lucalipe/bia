@@ -1,5 +1,15 @@
 # Regras de Infraestrutura - Projeto BIA
 
+## Ambiente de Desenvolvimento com Assistente de IA
+
+Duas formas válidas de rodar o assistente (Claude Code, antes kiro-cli):
+
+1. **Dentro da EC2 `bia-dev`**, usando a role da instância — sem credenciais
+   estáticas nem `aws configure` (ver seção "EC2 de Desenvolvimento" abaixo).
+2. **Na VM local (Ubuntu, VirtualBox)**, usando o profile AWS já configurado
+   para autenticação (`export AWS_PROFILE=formacaoaws`), que fornece as
+   mesmas permissões via CLI sem precisar entrar na EC2.
+
 ## Arquitetura Base
 - **Plataforma:** ECS com cluster de instâncias EC2
 - **Evolução:** Iniciar sem ALB → Evoluir para incluir ALB
