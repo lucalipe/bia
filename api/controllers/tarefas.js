@@ -102,6 +102,40 @@ module.exports = () => {
     }
   };
 
+  controller.update_titulo = async (req, res) => {
+    try {
+      const { Tarefas } = await initializeModels();
+      let { uuid } = req.params;
+      const titulo = typeof req.body.titulo === "string" ? req.body.titulo.trim() : "";
+
+      if (!titulo) {
+        return res.status(400).send({
+          message: "O título da tarefa é obrigatório.",
+        });
+      }
+
+      await Tarefas.update({ titulo }, {
+        where: {
+          uuid: uuid,
+        },
+      });
+
+      await refreshCache();
+      const data = await Tarefas.findByPk(uuid);
+      if (data) {
+        res.send(data);
+      } else {
+        res.status(404).send({
+          message: "Tarefa não encontrada.",
+        });
+      }
+    } catch (err) {
+      res.status(500).send({
+        message: err.message || "Deu ruim.",
+      });
+    }
+  };
+
   controller.deleteAll = async (req, res) => {
     try {
       const { Tarefas } = await initializeModels();

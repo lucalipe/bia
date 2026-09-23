@@ -128,6 +128,42 @@ function AppContent() {
     }
   };
 
+  //Editar título
+  const editTaskTitulo = async (uuid, novoTitulo) => {
+    const url = `${apiUrl}/api/tarefas/update_titulo/${uuid}`;
+    const payload = { titulo: novoTitulo };
+    logApiRequest('PUT', url, payload);
+
+    try {
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      logApiResponse('PUT', url, res.status, data);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      setTasks(
+        tasks.map((task) =>
+          task.uuid === uuid ? { ...task, titulo: data.titulo } : task
+        )
+      );
+
+      addLog('SUCCESS', 'Título atualizado', `Tarefa ${uuid} - Novo título: "${data.titulo}"`);
+    } catch (error) {
+      logApiError('PUT', url, error);
+      addLog('ERROR', 'Falha ao atualizar título', error.message);
+    }
+  };
+
   //Adicionar Tarefa
   const addTask = async (task) => {
     const url = `${apiUrl}/api/tarefas`;
@@ -215,6 +251,7 @@ function AppContent() {
           onDelete={deleteTask}
           onDeleteAll={confirmDeleteAll}
           onToggle={toggleReminder}
+          onEditTitulo={editTaskTitulo}
           fromCache={fromCache}
           cacheTTL={cacheTTL}
           cacheError={cacheError}

@@ -223,4 +223,80 @@ describe('Tarefas Controller', () => {
       });
     });
   });
+
+  describe('update_titulo', () => {
+    test('deve atualizar o título de uma tarefa com sucesso', async () => {
+      const tarefaAtualizada = { uuid: '123', titulo: 'Novo título' };
+      req.params.uuid = '123';
+      req.body = { titulo: '  Novo título  ' };
+      mockTarefas.update.mockResolvedValue([1]);
+      mockTarefas.findByPk.mockResolvedValue(tarefaAtualizada);
+
+      const { update_titulo } = tarefasController();
+      await update_titulo(req, res);
+
+      expect(mockTarefas.update).toHaveBeenCalledWith(
+        { titulo: 'Novo título' },
+        { where: { uuid: '123' } }
+      );
+      expect(res.send).toHaveBeenCalledWith(tarefaAtualizada);
+    });
+
+    test('deve retornar 404 quando tarefa não existe', async () => {
+      req.params.uuid = '999';
+      req.body = { titulo: 'Novo título' };
+      mockTarefas.update.mockResolvedValue([0]);
+      mockTarefas.findByPk.mockResolvedValue(null);
+
+      const { update_titulo } = tarefasController();
+      await update_titulo(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'Tarefa não encontrada.'
+      });
+    });
+
+    test('deve retornar 400 quando título vier vazio', async () => {
+      req.params.uuid = '123';
+      req.body = { titulo: '   ' };
+
+      const { update_titulo } = tarefasController();
+      await update_titulo(req, res);
+
+      expect(mockTarefas.update).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'O título da tarefa é obrigatório.'
+      });
+    });
+
+    test('deve retornar 400 quando título não for informado', async () => {
+      req.params.uuid = '123';
+      req.body = {};
+
+      const { update_titulo } = tarefasController();
+      await update_titulo(req, res);
+
+      expect(mockTarefas.update).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'O título da tarefa é obrigatório.'
+      });
+    });
+
+    test('deve retornar erro 500 ao falhar', async () => {
+      req.params.uuid = '123';
+      req.body = { titulo: 'Novo título' };
+      mockTarefas.update.mockRejectedValue(new Error('Erro no banco'));
+
+      const { update_titulo } = tarefasController();
+      await update_titulo(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'Erro no banco'
+      });
+    });
+  });
 });
