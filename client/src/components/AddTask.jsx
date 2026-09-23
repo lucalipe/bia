@@ -59,7 +59,7 @@ const AddTask = ({ onAdd }) => {
       </div>
       
       <button type="submit" className="btn btn-block success">
-        Adicionar Task dominio CND com cloudfront + Agentes de IA & Multi Agentic
+        Adicionar Task dominio CDN com cloudfront + Agentes de IA & Multi Agentic
       </button>
       
       <Modal
