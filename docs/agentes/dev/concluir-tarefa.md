@@ -1,0 +1,29 @@
+# Dev: Marcar tarefa como concluída e bloquear edição de título
+
+## Arquivos criados/alterados
+- `database/migrations/20260923000000-add-concluida-tarefas.js` — nova migration que adiciona a coluna `concluida` (boolean, `allowNull: true`, `defaultValue: false`) na tabela `Tarefas`, seguindo o mesmo padrão da coluna `importante` na migration original.
+- `api/models/tarefas.js` — adiciona o campo `concluida: DataTypes.BOOLEAN` ao model Sequelize.
+- `api/controllers/tarefas.js` — adiciona `controller.update_conclusao` (espelha `update_priority`: atualiza `req.body` na tarefa pelo `uuid`, invalida cache, retorna a tarefa atualizada ou 404). Altera `update_titulo` para buscar a tarefa antes de atualizar: se não existir, retorna 404 (como já era); se existir e `concluida` for `true`, retorna 409 com mensagem "Tarefa concluída não pode ter o título editado." e não chama `Tarefas.update`.
+- `api/routes/tarefas.js` — adiciona a rota `PUT /api/tarefas/update_conclusao/:uuid` apontando para `controller.update_conclusao`, no mesmo padrão de `update_priority`/`update_titulo`.
+- `client/src/components/Task.jsx` — novo botão "task-conclude" (ícone `FaCheckCircle`/`FaRegCircle`) para marcar/desmarcar concluída, distinto dos botões de "importante" e "editar"; classe `completed` aplicada à `div.task` quando `task.concluida`; botão de editar título (`task-edit`) fica `disabled` quando a tarefa está concluída (com `title` explicando o motivo) e `startEditing` também bloqueia a entrada em modo de edição por outro caminho (defensivo, caso o botão seja acionado mesmo desabilitado).
+- `client/src/components/Tasks.jsx` — repassa a nova prop `onToggleConcluida` para cada `Task`.
+- `client/src/App.jsx` — nova função `toggleConcluida(uuid)` (mesmo padrão de `toggleReminder`: busca a tarefa atual, inverte `concluida`, chama `PUT /api/tarefas/update_conclusao/:uuid`, atualiza o estado local e loga); passa `onToggleConcluida={toggleConcluida}` para `Tasks`.
+- `client/src/index.css` — estilo `.task.completed` (borda esquerda azul + opacidade reduzida) e `.task.completed h3` (texto riscado) para diferenciar visualmente tarefas concluídas; estilo do novo botão `.task-conclude` e `.task-edit:disabled`.
+- `tests/unit/controllers/tarefas.test.js` — ajusta os testes existentes de `update_titulo` para o novo fluxo (busca a tarefa via `findByPk` antes de atualizar): adiciona mock de `findByPk` no teste de erro 500 (para chegar até a chamada de `update`), adiciona `expect(mockTarefas.update).not.toHaveBeenCalled()` no teste de 404, e adiciona um novo teste cobrindo o retorno 409 quando a tarefa está concluída. Adiciona um novo bloco `describe('update_conclusao', ...)` com testes de sucesso (marcar e desmarcar), 404 e 500, espelhando os testes de `update_priority`.
+
+## Abordagem
+Segui a convenção já usada por `update_priority`/`update_titulo`: uma rota `PUT` dedicada por `uuid` que atualiza um campo específico, invalida o cache e devolve a tarefa atualizada (ou 404). O campo novo (`concluida`) foi adicionado via migration incremental (não editei a migration original, para não quebrar bancos já existentes) e replicado no model.
+
+Para o bloqueio de edição de título "mesmo chamando a rota diretamente", o `update_titulo` agora busca a tarefa no banco antes de decidir se aplica o `UPDATE`: se não existe, 404 (comportamento já existente); se existe e está `concluida`, retorna 409 sem tocar no banco; caso contrário, segue o fluxo antigo sem nenhuma mudança de comportamento. Isso garante que o bloqueio vale para qualquer chamador da API, não só a UI.
+
+No frontend, o botão de editar título fica com `disabled` quando `task.concluida` é `true` (em vez de ocultá-lo), para manter o layout da lista de ações estável e ainda comunicar o motivo via `title`. O novo botão de concluir/desconcluir foi adicionado como o primeiro item das ações da tarefa, com ícone e comportamento independentes do de "importante" (star) — nenhum dos dois altera o outro campo, e nenhum dos dois mexe em `dia_atividade`, conforme os critérios de aceite.
+
+## Critérios não verificados
+- Não foi possível rodar a aplicação (`npm start`), a migration (`npx sequelize-cli db:migrate`) nem a suíte de testes (`npm test`/Jest) neste ambiente, pois não há Node.js/Docker instalados nesta sessão (ambiente Windows local, apenas Git Bash). Todo o código (migration, model, controller, rotas, componentes React e testes) foi escrito e revisado manualmente, mas a verificação em runtime — incluindo rodar a migration contra o Postgres, chamar as rotas via HTTP, testar de fato pela UI no navegador e rodar `npm test` para confirmar que os testes unitários passam — fica pendente para o QA.
+- Não adicionei teste de UI automatizado (não existe suíte de teste de componente React no projeto hoje, só testes de controller em `tests/unit`), então a verificação de "botão de editar fica desabilitado quando concluída" e "diferenciação visual" na tela real também depende do QA rodar a aplicação.
+
+## Decisões técnicas
+- Nome do campo: `concluida` (booleano, default `false`), conforme a suposição do PO.
+- Nome da rota/função: `PUT /api/tarefas/update_conclusao/:uuid` / `controller.update_conclusao`, conforme a suposição do PO, espelhando exatamente a estrutura de `update_priority` (aceita `req.body` bruto, sem validação de schema — mesmo padrão já usado por `update_priority`).
+- Código de status do bloqueio de título em tarefa concluída: escolhi **409 Conflict** (em vez de 400), por representar melhor "a requisição é válida, mas conflita com o estado atual do recurso" — que é exatamente o caso (o título em si seria válido, mas a tarefa está em um estado que não permite a alteração).
+- O botão de editar título é **desabilitado** (não ocultado) quando a tarefa está concluída, mantendo o mesmo conjunto de botões visíveis nas ações da tarefa; a decisão está dentro do permitido pelo critério de aceite ("desabilitado ou oculto").
