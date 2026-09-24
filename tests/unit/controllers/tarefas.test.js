@@ -251,9 +251,25 @@ describe('Tarefas Controller', () => {
       const { update_titulo } = tarefasController();
       await update_titulo(req, res);
 
+      expect(mockTarefas.update).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.send).toHaveBeenCalledWith({
         message: 'Tarefa não encontrada.'
+      });
+    });
+
+    test('deve retornar 409 quando a tarefa está concluída', async () => {
+      req.params.uuid = '123';
+      req.body = { titulo: 'Novo título' };
+      mockTarefas.findByPk.mockResolvedValue({ uuid: '123', titulo: 'Antigo', concluida: true });
+
+      const { update_titulo } = tarefasController();
+      await update_titulo(req, res);
+
+      expect(mockTarefas.update).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'Tarefa concluída não pode ter o título editado.'
       });
     });
 
@@ -288,10 +304,76 @@ describe('Tarefas Controller', () => {
     test('deve retornar erro 500 ao falhar', async () => {
       req.params.uuid = '123';
       req.body = { titulo: 'Novo título' };
+      mockTarefas.findByPk.mockResolvedValue({ uuid: '123', titulo: 'Antigo', concluida: false });
       mockTarefas.update.mockRejectedValue(new Error('Erro no banco'));
 
       const { update_titulo } = tarefasController();
       await update_titulo(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'Erro no banco'
+      });
+    });
+  });
+
+  describe('update_conclusao', () => {
+    test('deve marcar uma tarefa como concluída com sucesso', async () => {
+      const tarefaAtualizada = { uuid: '123', concluida: true };
+      req.params.uuid = '123';
+      req.body = { concluida: true };
+      mockTarefas.update.mockResolvedValue([1]);
+      mockTarefas.findByPk.mockResolvedValue(tarefaAtualizada);
+
+      const { update_conclusao } = tarefasController();
+      await update_conclusao(req, res);
+
+      expect(mockTarefas.update).toHaveBeenCalledWith(
+        { concluida: true },
+        { where: { uuid: '123' } }
+      );
+      expect(res.send).toHaveBeenCalledWith(tarefaAtualizada);
+    });
+
+    test('deve desmarcar uma tarefa concluída com sucesso', async () => {
+      const tarefaAtualizada = { uuid: '123', concluida: false };
+      req.params.uuid = '123';
+      req.body = { concluida: false };
+      mockTarefas.update.mockResolvedValue([1]);
+      mockTarefas.findByPk.mockResolvedValue(tarefaAtualizada);
+
+      const { update_conclusao } = tarefasController();
+      await update_conclusao(req, res);
+
+      expect(mockTarefas.update).toHaveBeenCalledWith(
+        { concluida: false },
+        { where: { uuid: '123' } }
+      );
+      expect(res.send).toHaveBeenCalledWith(tarefaAtualizada);
+    });
+
+    test('deve retornar 404 quando tarefa não existe', async () => {
+      req.params.uuid = '999';
+      req.body = { concluida: true };
+      mockTarefas.update.mockResolvedValue([0]);
+      mockTarefas.findByPk.mockResolvedValue(null);
+
+      const { update_conclusao } = tarefasController();
+      await update_conclusao(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'Tarefa não encontrada.'
+      });
+    });
+
+    test('deve retornar erro 500 ao falhar', async () => {
+      req.params.uuid = '123';
+      req.body = { concluida: true };
+      mockTarefas.update.mockRejectedValue(new Error('Erro no banco'));
+
+      const { update_conclusao } = tarefasController();
+      await update_conclusao(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.send).toHaveBeenCalledWith({

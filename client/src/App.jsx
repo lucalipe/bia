@@ -128,6 +128,46 @@ function AppContent() {
     }
   };
 
+  //Alternar Concluída
+  const toggleConcluida = async (uuid) => {
+    try {
+      const taskToToggle = await fetchTask(uuid);
+      const updatedTask = {
+        ...taskToToggle,
+        concluida: !taskToToggle.concluida,
+      };
+
+      const url = `${apiUrl}/api/tarefas/update_conclusao/${uuid}`;
+      logApiRequest('PUT', url, updatedTask);
+
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(updatedTask),
+      });
+
+      const data = await res.json();
+
+      logApiResponse('PUT', url, res.status, data);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      setTasks(
+        tasks.map((task) =>
+          task.uuid === uuid ? { ...task, concluida: data.concluida } : task
+        )
+      );
+
+      addLog('SUCCESS', 'Conclusão alterada', `Tarefa ${uuid} - Concluída: ${data.concluida}`);
+    } catch (error) {
+      addLog('ERROR', 'Falha ao alterar conclusão', error.message);
+    }
+  };
+
   //Editar título
   const editTaskTitulo = async (uuid, novoTitulo) => {
     const url = `${apiUrl}/api/tarefas/update_titulo/${uuid}`;
@@ -251,6 +291,7 @@ function AppContent() {
           onDelete={deleteTask}
           onDeleteAll={confirmDeleteAll}
           onToggle={toggleReminder}
+          onToggleConcluida={toggleConcluida}
           onEditTitulo={editTaskTitulo}
           fromCache={fromCache}
           cacheTTL={cacheTTL}

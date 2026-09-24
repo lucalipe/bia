@@ -60,4 +60,13 @@ module.exports = (app) => {
         next(err);
       }
     });
+
+  app.route("/api/tarefas/update_conclusao/:uuid")
+    .put(async (req, res, next) => {
+      try {
+        await controller.update_conclusao(req, res);
+      } catch (err) {
+        next(err);
+      }
+    });
 };

@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { FaTimes, FaStar, FaRegStar, FaEdit, FaCheck } from "react-icons/fa";
+import { FaTimes, FaStar, FaRegStar, FaEdit, FaCheck, FaCheckCircle, FaRegCircle } from "react-icons/fa";
 import Modal from "./Modal";
 
-const Task = ({ task, onDelete, onToggle, onEditTitulo }) => {
+const Task = ({ task, onDelete, onToggle, onToggleConcluida, onEditTitulo }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitulo, setEditedTitulo] = useState(task.titulo);
   const [showModal, setShowModal] = useState(false);
 
   const startEditing = () => {
+    if (task.concluida) return;
     setEditedTitulo(task.titulo);
     setIsEditing(true);
   };
@@ -41,7 +42,7 @@ const Task = ({ task, onDelete, onToggle, onEditTitulo }) => {
 
   return (
     <div
-      className={`task ${task.importante ? "reminder" : ""}`}
+      className={`task ${task.importante ? "reminder" : ""} ${task.concluida ? "completed" : ""}`}
       onDoubleClick={() => !isEditing && onToggle(task.uuid)}
     >
       <div className="task-content">
@@ -82,9 +83,17 @@ const Task = ({ task, onDelete, onToggle, onEditTitulo }) => {
         ) : (
           <>
             <button
+              className="task-conclude"
+              onClick={() => onToggleConcluida(task.uuid)}
+              title={task.concluida ? "Desmarcar como concluída" : "Marcar como concluída"}
+            >
+              {task.concluida ? <FaCheckCircle /> : <FaRegCircle />}
+            </button>
+            <button
               className="task-edit"
               onClick={startEditing}
-              title="Editar título"
+              disabled={task.concluida}
+              title={task.concluida ? "Tarefa concluída: título não pode ser editado" : "Editar título"}
             >
               <FaEdit />
             </button>

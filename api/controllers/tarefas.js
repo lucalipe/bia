@@ -114,7 +114,46 @@ module.exports = () => {
         });
       }
 
+      const tarefa = await Tarefas.findByPk(uuid);
+      if (!tarefa) {
+        return res.status(404).send({
+          message: "Tarefa não encontrada.",
+        });
+      }
+
+      if (tarefa.concluida) {
+        return res.status(409).send({
+          message: "Tarefa concluída não pode ter o título editado.",
+        });
+      }
+
       await Tarefas.update({ titulo }, {
+        where: {
+          uuid: uuid,
+        },
+      });
+
+      await refreshCache();
+      const data = await Tarefas.findByPk(uuid);
+      if (data) {
+        res.send(data);
+      } else {
+        res.status(404).send({
+          message: "Tarefa não encontrada.",
+        });
+      }
+    } catch (err) {
+      res.status(500).send({
+        message: err.message || "Deu ruim.",
+      });
+    }
+  };
+
+  controller.update_conclusao = async (req, res) => {
+    try {
+      const { Tarefas } = await initializeModels();
+      let { uuid } = req.params;
+      await Tarefas.update(req.body, {
         where: {
           uuid: uuid,
         },
