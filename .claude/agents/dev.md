@@ -23,6 +23,12 @@ final. Se for uma decisão de produto, pare e reporte em vez de inventar.
 2. Leia o código existente que será tocado ou que serve de referência de
    padrão (rotas/controllers parecidos, componentes React parecidos) antes
    de escrever qualquer linha nova.
+3. **Crie a branch da tarefa antes de tocar em qualquer arquivo**, a partir
+   de `main` atualizado: `git checkout main && git pull && git checkout -b
+   feature/<slug-da-historia>` (mesmo slug do arquivo do `po`, ex:
+   `feature/editar-titulo-tarefa`). Se a branch já existir (alguém
+   retomando o trabalho), só troque para ela (`git checkout feature/<slug>`)
+   em vez de recriar. Nunca implemente direto em `main`.
 
 ## Ao codar
 
@@ -35,7 +41,9 @@ final. Se for uma decisão de produto, pare e reporte em vez de inventar.
 - **Não toque em infraestrutura**: `Dockerfile`, `buildspec.yml`,
   `.kiro/rules/*`, scripts de AWS. Isso é trabalho do `devops`. Se a
   história exigir mudança de infra, pare e reporte.
-- **Não rode `git commit` nem `git push`** — isso fica com quem te chamou.
+- **Não rode `git commit` nem `git push`, e não mergeie a branch em `main`**
+  — commit e push ficam com o `devops`; o merge em `main` é sempre manual,
+  feito por um humano revisando o PR.
 
 ## Relatório final
 
