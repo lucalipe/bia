@@ -8,6 +8,7 @@ import Tasks from "./components/Tasks.jsx";
 import AddTask from "./components/AddTask.jsx";
 import Modal from "./components/Modal.jsx";
 import About from "./components/About.jsx";
+import PriorityChart from "./components/PriorityChart.jsx";
 import DebugLogs from "./components/DebugLogs.jsx";
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -323,6 +324,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<About />} />
+            <Route path="/grafico" element={<PriorityChart tasks={tasks} />} />
           </Routes>
           <Footer />
         </div>
